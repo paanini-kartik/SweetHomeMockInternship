@@ -2004,10 +2004,46 @@ public class PlanComponent extends JComponent implements PlanView, Scrollable, P
   }
   
   /**
+   * Prints all viewable levels at the scale given in the home print attributes or at a scale 
+   * that makes each level fill <code>pageFormat</code> imageable size if this attribute is <code>null</code>.
+   */
+  public int print(Graphics g, PageFormat pageFormat, int pageIndex) {
+
+    List<Level> viewableLevels = new ArrayList<>();
+    for (Level level : this.home.getLevels()) {
+      if (level.isViewable()) { // Only get viewable layers
+        viewableLevels.add(level);
+      }
+    }
+
+    if (viewableLevels.isEmpty()) { // Case where it's the same as before
+      return printGivenLevel(g, pageFormat, pageIndex);
+    }
+
+    if (pageIndex >= viewableLevels.size()) { // Further than viewable levels
+      return NO_SUCH_PAGE;
+    }
+    
+
+    Level prevSelectedLevel = this.home.getSelectedLevel(); // To preserve selected level after calculation
+
+    try {
+      this.home.setSelectedLevel(viewableLevels.get(pageIndex));
+      if (printGivenLevel(g, pageFormat, 0) == PAGE_EXISTS) { // Works
+        return PAGE_EXISTS;
+      }
+      return NO_SUCH_PAGE; // Done with viewable levels
+    } finally {
+      this.home.setSelectedLevel(prevSelectedLevel); // Reset selected level
+    }
+
+  }
+  
+  /**
    * Prints this component plan at the scale given in the home print attributes or at a scale 
    * that makes it fill <code>pageFormat</code> imageable size if this attribute is <code>null</code>.
    */
-  public int print(Graphics g, PageFormat pageFormat, int pageIndex) {
+  public int printGivenLevel(Graphics g, PageFormat pageFormat, int pageIndex) {
     List<Selectable> printedItems = getPaintedItems(); 
     Rectangle2D printedItemBounds = getItemsBounds(g, printedItems);
     if (printedItemBounds != null) {
